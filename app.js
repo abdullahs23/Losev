@@ -84,7 +84,10 @@ app.post("/sign-up",
 
                 const sansurluSifre = await bcrypt.hash(password, 10);
                 const newUser = userModel.create({ id, isim: firstName, soyisim: lastName, email, phone, password: sansurluSifre, birthDate: "1999-07-06", gender: "female" })
-
+                
+                if (!newUser){
+                    res.status(500).json({status: "error", data: "Kullanıcı oluşturulamadı."});
+                }
                 res.status(200).json({ status: "success", data: "Kullanıcı eklendi" })
                 }
             } catch (error) {
@@ -96,7 +99,11 @@ app.post("/sign-up",
     app.post("/new-announcement", async (req,res) => {
         const{ photoLink, title, description} =req.body;
     try{
-const newAnnouncement =announcementModel.create({photoLink: photoLink, title: title,description : description , isActive: true});
+const newAnnouncement = await announcementModel.create({photoLink: photoLink, title: title,description : description , isActive: true});
+ 
+if(!newAnnouncement){
+    res.status(500).json({status:"error", data:"Duyru oluşturulamadı."});
+}
 res.status(200).json({status:"success",data: newAnnouncement})
     } catch(error){
         res.status(500).json({status:"error",data: error})
@@ -105,7 +112,7 @@ res.status(200).json({status:"success",data: newAnnouncement})
 app.get("/all-announcements",async(req,res)=>{
     try{
     const allAnnouncement = await announcementModel.findAll({where:{isActive:true}});
-    res.status(200).json({status:"succeess", data: allAnnouncement });
+    res.status(200).json({status:"success", data: allAnnouncement });
     }catch(error){
         res.status(500).json({status:"error",data: error})
     }
@@ -125,6 +132,10 @@ app.post("/new-categories",async(req,res)=>{
     const { photoLink, title } = req.body;
     try{
         const newCategory =  categoryModel.create({ photoLink:photoLink, title:title });
+
+        if(!newCategory){
+            res.status(500).json({status:"error", data: "Kategori oluşturulamadı."})
+        }
         res.status(200).json({status:"success",data: newCategory})
     } catch(error){
         res.status(500).json({status:"error",data: error})
@@ -154,8 +165,11 @@ app.post("/new-product", async(req, res) => {
 
     try {
         const newProduct = await productModel.create({ id: id, name: name, photoLink: photoLink,
+            
              price: price, categoryId: categoryId });
-
+             if(!newProduct){
+                res.status(500).json({status:"error", data: "Ürün oluşturulamadı."})
+             }
         res.status(200).json({ status: "success", data: newProduct });
     } catch(err) {
         res.status(500).json({ status: "error", data: err})
@@ -250,6 +264,9 @@ app.post("/new-fav", async (req, res, next) => {
     try {
         const newFav = await favoriteModel.create({ userId: userId, 
             productId: productId });
+            if(!newFaw){
+                res.status(500).json({status:"error", data: "Fawori eklenemedi."})
+             }
 
         res.status(200).json({ status: "success", 
             data: "Favori başarıyla eklendi."});
@@ -288,13 +305,18 @@ app.post("/basket", async (req, res, next) => {
         }});
 
         if (isProdExists) {
-            await basketModel.update({
+           const [updatedBasket] = await basketModel.update({
                 quantity: quantity,
             },{ where: { userId:userId, productId: productId }});
+            if(updatedBasket === 0) {
+                res.status(500).json({status: "error", data: " Ürün sepete eklenemedi."});
+            }
             }else {
-              await basketModel.create ({ userId, productId: productId,
-                quantity: quantity });
-            
+                const newProduct =  await basketModel.create ({ userId, productId: productId,
+                    quantity: quantity });
+                if(!newProduct){
+                    res.status(500).json({status:"error", data: "Ürün eklenemedi."});
+                 }  
         }
         
 
@@ -323,9 +345,14 @@ app.post("/basket", async (req, res, next) => {
     }
 });
 
-app.delete("/basket/userId", async(req,res, next) => {
+app.delete("/basket/:userId", async(req,res, next) => {
+    const {userId} = req.userId;
     try {
-        await basketModel.destroy ({ where: {userId: userId}});
+        const deletedBasket = await basketModel.destroy({ where: {userId: userId}});
+
+        if (deletedBasket === 0) {
+          res.status(500).json({status:"error", data: "Sepet Boşaltılamadı."}); }
+
         const basket = await basketModel.findAll({
             include: [
                 {
