@@ -321,7 +321,36 @@ app.post("/basket", async (req, res, next) => {
         console.log("error!!!", error);
         res.status(500).json({ status: "error", data: "Sepet getirilemedi."})
     }
-})
+});
+
+app.delete("/basket/userId", async(req,res, next) => {
+    try {
+        await basketModel.destroy ({ where: {userId: userId}});
+        const basket = await basketModel.findAll({
+            include: [
+                {
+                    model: productModel,
+                    as: "product"
+                }
+            ],
+            where: { userId: userId }
+        });
+        
+
+        let basketTotal = 0;
+
+        for(const b of basket) {
+            const prodTotal = b.product.price * b.quantity;
+
+            basketTotal += prodTotal;
+        }
+
+        res.status(200).json({ status: "success", data: { basket, basketTotal } });
+    } catch(error){
+        res.status(500).json({status:"error", data: "sepet silinemedi"})
+    }
+});
+
 
 app.delete("/basket/:userId/:productId", async (req, res, next) => {
     const {userId, productId} = req.params;
@@ -338,6 +367,7 @@ app.delete("/basket/:userId/:productId", async (req, res, next) => {
         ],
         where: { userId: userId }
     });
+    
 
     let basketTotal = 0;
 
@@ -353,6 +383,7 @@ app.delete("/basket/:userId/:productId", async (req, res, next) => {
 }
     
 });
+
 app.listen(port, () => {
     console.log("Sunucu http://localhost:${port} adresinde çalışıyor");
 });
