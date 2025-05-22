@@ -83,7 +83,7 @@ app.post("/sign-up",
                 } else {
 
                 const sansurluSifre = await bcrypt.hash(password, 10);
-                const newUser = userModel.create({ id, isim: firstName, soyisim: lastName, email, phone, password: sansurluSifre, birthDate: "1999-07-06", gender: "female" })
+                const newUser = userModel.create({ id, isim: firstName, soyisim: lastName, email, phone, password: sansurluSifre })
                 
                 if (!newUser){
                     res.status(500).json({status: "error", data: "Kullanıcı oluşturulamadı."});
